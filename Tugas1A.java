@@ -6,8 +6,11 @@ import aima.core.search.framework.HeuristicFunction;
 import aima.core.search.framework.Search;
 import aima.core.search.framework.SearchAgent;
 import aima.core.search.framework.problem.*;
+import aima.core.search.framework.qsearch.GraphSearch;
+import aima.core.search.informed.AStarSearch;
 import aima.core.search.uninformed.IterativeDeepeningSearch;
 import aima.core.util.datastructure.XYLocation;
+import aima.core.util.math.Interval;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -65,7 +68,7 @@ public class Tugas1A {
             if (strategy.equals("ids"))
                 search = new IterativeDeepeningSearch();
             else if (strategy.equals("a*"))
-                search = new IterativeDeepeningSearch();
+                search = new AStarSearch(new GraphSearch(), new JarvisHeuristicFunction());
 
             SearchAgent agent = new SearchAgent(problem, search);
             List<Action> actions = agent.getActions();
@@ -84,8 +87,9 @@ public class Tugas1A {
                     sb.append(nl);
             }
 
-            List<String> lines = Arrays.asList(sb.toString());
+            System.out.println(sb.toString());
 
+            List<String> lines = Arrays.asList(sb.toString());
             Path outputFile = Paths.get(outputFilename);
             Files.write(outputFile, lines, Charset.forName("UTF-8"));
         } catch (Exception e) {
@@ -216,7 +220,7 @@ class Environment {
      * Mengembalikan List yang berisi posisi seluruh barang
      */
     public List<XYLocation> getItemPositions() {
-        ArrayList<XYLocation> result = new ArrayList<XYLocation>();
+        ArrayList<XYLocation> result = new ArrayList<XYLocation>(m * n);
         for (int i = 0; i < m; i++) {
             for (int j = 0; j < n; j++) {
                 if (itemExistsAt(i, j))
@@ -227,7 +231,7 @@ class Environment {
     }
 
     public List<XYLocation> getObstaclePositions() {
-        ArrayList<XYLocation> result = new ArrayList<XYLocation>();
+        ArrayList<XYLocation> result = new ArrayList<XYLocation>(m * n);
         for (int i = 0; i < m; i++) {
             for (int j = 0; j < n; j++) {
                 if (obstacleExistsAt(i, j))
@@ -306,8 +310,9 @@ class Environment {
 
 class JarvisGoalTest implements GoalTest {
     public boolean isGoalState(Object state) {
-        Environment environment = (Environment) state;
-        return !environment.hasItemsleft();
+        Environment env = (Environment) state;
+        System.out.println("Checking state " + env.getPosition());
+        return !env.hasItemsleft();
     }
 }
 
@@ -370,61 +375,27 @@ class JarvisResultFunction implements ResultFunction {
 
 /**
  * Fungsi heuristik yang akan mengembalikan jarak terdekat
- * Jarvis dengan item yang ada menggunakan manhattan distance
+ * Jarvis dengan item yang ada menggunakan Manhattan distance
  */
 class JarvisHeuristicFunction implements HeuristicFunction {
-//        for (int i = 1; i < 9; i++) {
-//            XYLocation loc = board.getLocationOf(i);
-//            retVal += evaluateManhattanDistanceOf(i, loc);
-//        }
-//        return retVal;
-//
-//    }
-//
-//    public int evaluateManhattanDistanceOf(int i, XYLocation loc) {
-//        int retVal = -1;
-//        int xpos = loc.getXCoOrdinate();
-//        int ypos = loc.getYCoOrdinate();
-//        switch (i) {
-//
-//            case 1:
-//                retVal = Math.abs(xpos - 0) + Math.abs(ypos - 1);
-//                break;
-//            case 2:
-//                retVal = Math.abs(xpos - 0) + Math.abs(ypos - 2);
-//                break;
-//            case 3:
-//                retVal = Math.abs(xpos - 1) + Math.abs(ypos - 0);
-//                break;
-//            case 4:
-//                retVal = Math.abs(xpos - 1) + Math.abs(ypos - 1);
-//                break;
-//            case 5:
-//                retVal = Math.abs(xpos - 1) + Math.abs(ypos - 2);
-//                break;
-//            case 6:
-//                retVal = Math.abs(xpos - 2) + Math.abs(ypos - 0);
-//                break;
-//            case 7:
-//                retVal = Math.abs(xpos - 2) + Math.abs(ypos - 1);
-//                break;
-//            case 8:
-//                retVal = Math.abs(xpos - 2) + Math.abs(ypos - 2);
-//                break;
-//
-//        }
-//        return retVal;
-//    }
-
     public double h(Object state) {
         Environment env = (Environment) state;
         XYLocation position = env.getPosition();
         List<XYLocation> itemPositions = env.getItemPositions();
-        for (XYLocation itemPosition : itemPositions) {
-            manhattanDis
+        double maxDistance = Double.MAX_VALUE;
+
+        int itemPositionsSize = itemPositions.size();
+        for (int i = 0; i < itemPositionsSize; i++) {
+            maxDistance = Math.min(maxDistance,
+                    manhattanDistance(position, itemPositions.get(i)));
         }
 
-        return board.getNumberOfAttackingPairs();
+        return maxDistance;
+    }
+
+    public int manhattanDistance(XYLocation position, XYLocation itemPosition) {
+        return Math.abs(position.getXCoOrdinate() - itemPosition.getXCoOrdinate()) +
+                Math.abs(position.getYCoOrdinate() - itemPosition.getYCoOrdinate());
     }
 }
 
