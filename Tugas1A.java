@@ -1,25 +1,22 @@
 import aima.core.agent.Action;
 import aima.core.agent.impl.DynamicAction;
-import aima.core.environment.eightpuzzle.EightPuzzleBoard;
-import aima.core.environment.nqueens.NQueensBoard;
 import aima.core.search.framework.HeuristicFunction;
 import aima.core.search.framework.Search;
 import aima.core.search.framework.SearchAgent;
 import aima.core.search.framework.problem.*;
-import aima.core.search.framework.qsearch.GraphSearch;
+import aima.core.search.framework.qsearch.TreeSearch;
 import aima.core.search.informed.AStarSearch;
 import aima.core.search.uninformed.IterativeDeepeningSearch;
 import aima.core.util.datastructure.XYLocation;
-import aima.core.util.math.Interval;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.util.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.*;
 
 public class Tugas1A {
     public static void main(String[] args) {
@@ -31,26 +28,26 @@ public class Tugas1A {
             File inputFile = new File(inputFilename);
             BufferedReader reader = new BufferedReader(new FileReader(inputFile));
 
-            // Initialize environment
+            // Inisialisasi environment
             String input = reader.readLine();
             String[] splitted = input.split(",");
             int m = Integer.parseInt(splitted[0]);
             int n = Integer.parseInt(splitted[1]);
 
-            // Initialize start position
+            // Inisialisasi start
             input = reader.readLine();
             splitted = input.split(",");
             XYLocation start = new XYLocation(parseIntegerWithOffset(splitted[0]),
-                                              parseIntegerWithOffset(splitted[1]));
+                    parseIntegerWithOffset(splitted[1]));
 
             Environment env = new Environment(m, n, start);
 
-            // Initialize items
+            // Inisialisasi items
             input = reader.readLine();
             splitted = input.split(" ");
             List<XYLocation> items = parsePositions(splitted);
 
-            // Initialize obstacles
+            // Inisialisasi obstacles
             input = reader.readLine();
             splitted = input.split(" ");
             List<XYLocation> obstacles = parsePositions(splitted);
@@ -68,12 +65,10 @@ public class Tugas1A {
             if (strategy.equals("ids"))
                 search = new IterativeDeepeningSearch();
             else if (strategy.equals("a*"))
-                search = new AStarSearch(new GraphSearch(), new JarvisHeuristicFunction());
+                search = new AStarSearch(new TreeSearch(), new JarvisHeuristicFunction());
 
             SearchAgent agent = new SearchAgent(problem, search);
             List<Action> actions = agent.getActions();
-
-            // Print result
             StringBuilder sb = new StringBuilder();
             String nl = System.lineSeparator();
             sb.append((int) Double.parseDouble(agent.getInstrumentation().getProperty("pathCost"))).append(nl);
@@ -87,6 +82,7 @@ public class Tugas1A {
                     sb.append(nl);
             }
 
+            // todo remove when done
             System.out.println(sb.toString());
 
             List<String> lines = Arrays.asList(sb.toString());
@@ -97,6 +93,9 @@ public class Tugas1A {
         }
     }
 
+    /**
+     * Mengembalikan list yang berisi posisi item/obstacle dari masukan
+     */
     private static List<XYLocation> parsePositions(String[] inputPositions) {
         List<XYLocation> positions = new ArrayList<XYLocation>(inputPositions.length);
 
@@ -118,20 +117,20 @@ public class Tugas1A {
 
 class Environment {
     int[][] squares;
-    XYLocation position;
+    XYLocation jarvis;
     int m;
     int n;
 
     /**
-     * Membuat environment dengan ukuran m baris dan n kolom.
-     * Urutan baris dan kolom dimulai dari 0.
+     * Membuat environment dengan ukuran m baris dan n kolom serta posisi Jarvis
+     * Urutan baris dan kolom dimulai dari 0
      *
      * Keterangan:
      * 0  = tidak ada apapun
      * 1  = terdapat barang (item)
      * -1 = terdapat penghalang (obstacle)
      */
-    public Environment(int m, int n, XYLocation position) {
+    public Environment(int m, int n, XYLocation jarvis) {
         this.m = m;
         this.n = n;
 
@@ -142,7 +141,7 @@ class Environment {
             }
         }
 
-        this.position = position;
+        this.jarvis = jarvis;
     }
 
     /**
@@ -158,17 +157,16 @@ class Environment {
 
     /**
      * Mengisi environment dengan items dan obstacles
-     * TODO: Mungkin bisa pake foreach
      */
     public void setBoard(List<XYLocation> items, List<XYLocation> obstacles) {
         clear();
 
-        for (int i = 0; i < items.size(); i++) {
-            addItemAt(items.get(i));
+        for (XYLocation item : items) {
+            addItemAt(item);
         }
 
-        for (int i = 0; i < obstacles.size(); i++) {
-            addObstacleAt(obstacles.get(i));
+        for (XYLocation obstacle : obstacles) {
+            addObstacleAt(obstacle);
         }
     }
 
@@ -180,13 +178,16 @@ class Environment {
         return n;
     }
 
-    public XYLocation getPosition() {
-        return position;
+    public XYLocation getJarvis() {
+        return jarvis;
     }
 
-    public void movePosition(XYLocation l) {
-        if (isValidPosition(l)) {
-            position = l;
+    /**
+     * Memindahkan Jarvis ke posisi baru
+     */
+    public void moveJarvis(XYLocation l) {
+        if (isValidLocation(l)) {
+            jarvis = l;
         } else {
             System.out.println("Something wrong happens!");
         }
@@ -202,7 +203,7 @@ class Environment {
     }
 
     /**
-     * Menambahkan obstace ke posisi l
+     * Menambahkan obstacle ke posisi l
      */
     public void addObstacleAt(XYLocation l) {
         if (!obstacleExistsAt(l)) {
@@ -210,6 +211,9 @@ class Environment {
         }
     }
 
+    /**
+     * Menghapus item di posisi l
+     */
     public void removeItemFrom(XYLocation l) {
         if (squares[l.getXCoOrdinate()][l.getYCoOrdinate()] == 1) {
             squares[l.getXCoOrdinate()][l.getYCoOrdinate()] = 0;
@@ -217,7 +221,7 @@ class Environment {
     }
 
     /**
-     * Mengembalikan List yang berisi posisi seluruh barang
+     * Mengembalikan list yang berisi posisi seluruh item
      */
     public List<XYLocation> getItemPositions() {
         ArrayList<XYLocation> result = new ArrayList<XYLocation>(m * n);
@@ -230,6 +234,9 @@ class Environment {
         return result;
     }
 
+    /**
+     * Mengembalikan list yang berisi posisi seluruh obstacle
+     */
     public List<XYLocation> getObstaclePositions() {
         ArrayList<XYLocation> result = new ArrayList<XYLocation>(m * n);
         for (int i = 0; i < m; i++) {
@@ -241,8 +248,8 @@ class Environment {
         return result;
     }
 
-    public boolean agentExistsAt(XYLocation l) {
-        return l.equals(position);
+    public boolean jarvisExistsAt(XYLocation l) {
+        return l.equals(jarvis);
     }
 
     public boolean itemExistsAt(XYLocation l) {
@@ -269,12 +276,12 @@ class Environment {
         return x < 0 || x >= m || y < 0 || y >= n;
     }
 
-    public boolean isValidPosition(XYLocation l) {
+    public boolean isValidLocation(XYLocation l) {
         return !outOfBound(l) && !obstacleExistsAt(l);
     }
 
     /**
-     * Mengecek apakah masih ada barang di lab yang belum diambil
+     * Mengecek apakah masih ada item yang belum diambil
      */
     public boolean hasItemsleft() {
         for (int i = 0; i < m; i++) {
@@ -292,8 +299,8 @@ class Environment {
     public String toString() {
         StringBuffer buf = new StringBuffer();
         for (int x = 0; x < m; x++) {
-            for (int y= 0; y < n; y++) {
-                if (agentExistsAt(new XYLocation(x, y)))
+            for (int y = 0; y < n; y++) {
+                if (jarvisExistsAt(new XYLocation(x, y)))
                     buf.append('J');
                 else if (itemExistsAt(x, y))
                     buf.append('o');
@@ -309,40 +316,50 @@ class Environment {
 }
 
 class JarvisGoalTest implements GoalTest {
+    /**
+     * Goal state: ketika sudah tidak ada item yang tersisa di environment
+     */
     public boolean isGoalState(Object state) {
         Environment env = (Environment) state;
-        System.out.println("Checking state " + env.getPosition());
         return !env.hasItemsleft();
     }
 }
 
 class JarvisActionsFunction implements ActionsFunction {
+    /**
+     * Action function:
+     * - Ambil item (selalu dijalankan jika Jarvis berada di location yang terdapat item)
+     * - Pindah ke atas
+     * - Pindah ke kanan
+     * - Pindah ke bawah
+     * - Pindah ke kiri
+     */
     public Set<Action> actions(Object state) {
         Environment env = (Environment) state;
 
         Set<Action> actions = new LinkedHashSet<Action>();
-        XYLocation jarvis = env.position;
+        XYLocation jarvis = env.jarvis;
 
         if (env.itemExistsAt(jarvis)) {
             actions.add(new JarvisAction(JarvisAction.PICK, jarvis));
         } else {
             XYLocation newLocation = new XYLocation(jarvis.getXCoOrdinate() - 1, jarvis.getYCoOrdinate());
-            if (env.isValidPosition(newLocation)) {
+            if (env.isValidLocation(newLocation)) {
                 actions.add(new JarvisAction(JarvisAction.MOVE_UP, newLocation));
             }
 
             newLocation = new XYLocation(jarvis.getXCoOrdinate() + 1, jarvis.getYCoOrdinate());
-            if (env.isValidPosition(newLocation)) {
+            if (env.isValidLocation(newLocation)) {
                 actions.add(new JarvisAction(JarvisAction.MOVE_DOWN, newLocation));
             }
 
             newLocation = new XYLocation(jarvis.getXCoOrdinate(), jarvis.getYCoOrdinate() - 1);
-            if (env.isValidPosition(newLocation)) {
+            if (env.isValidLocation(newLocation)) {
                 actions.add(new JarvisAction(JarvisAction.MOVE_LEFT, newLocation));
             }
 
             newLocation = new XYLocation(jarvis.getXCoOrdinate(), jarvis.getYCoOrdinate() + 1);
-            if (env.isValidPosition(newLocation)) {
+            if (env.isValidLocation(newLocation)) {
                 actions.add(new JarvisAction(JarvisAction.MOVE_RIGHT, newLocation));
             }
         }
@@ -352,11 +369,19 @@ class JarvisActionsFunction implements ActionsFunction {
 }
 
 class JarvisResultFunction implements ResultFunction {
+    /**
+     * Result function:
+     * - Ambil item         : barang akan dihapus dari location tersebut
+     * - Pindah ke atas     : Jarvis pindah ke posisi (x - 1, y)
+     * - Pindah ke kanan    : Jarvis pindah ke posisi (x, y + 1)
+     * - Pindah ke bawah    : Jarvis pindah ke posisi (x + 1, y)
+     * - Pindah ke kiri     : Jarvis pindah ke posisi (x, y - 1)
+     */
     public Object result(Object s, Action a) {
         if (a instanceof JarvisAction) {
             JarvisAction ja = (JarvisAction) a;
             Environment env = (Environment) s;
-            Environment newEnv = new Environment(env.getRowSize(), env.getColumnSize(), env.getPosition());
+            Environment newEnv = new Environment(env.getRowSize(), env.getColumnSize(), env.getJarvis());
             newEnv.setBoard(env.getItemPositions(), env.getObstaclePositions());
 
             if (ja.getName() == JarvisAction.PICK)
@@ -365,7 +390,7 @@ class JarvisResultFunction implements ResultFunction {
                     ja.getName() == JarvisAction.MOVE_RIGHT ||
                     ja.getName() == JarvisAction.MOVE_DOWN ||
                     ja.getName() == JarvisAction.MOVE_LEFT)
-                newEnv.movePosition(ja.getLocation());
+                newEnv.moveJarvis(ja.getLocation());
             s = newEnv;
         }
 
@@ -374,23 +399,21 @@ class JarvisResultFunction implements ResultFunction {
 }
 
 /**
- * Fungsi heuristik yang akan mengembalikan jarak terdekat
- * Jarvis dengan item yang ada menggunakan Manhattan distance
+ * Heuristic function: mengembalikan jarak dengan item terdekat menggunakan Manhattan distance
  */
 class JarvisHeuristicFunction implements HeuristicFunction {
     public double h(Object state) {
         Environment env = (Environment) state;
-        XYLocation position = env.getPosition();
+        XYLocation position = env.getJarvis();
         List<XYLocation> itemPositions = env.getItemPositions();
-        double maxDistance = Double.MAX_VALUE;
+        double minDistance = Double.MAX_VALUE;
 
-        int itemPositionsSize = itemPositions.size();
-        for (int i = 0; i < itemPositionsSize; i++) {
-            maxDistance = Math.min(maxDistance,
-                    manhattanDistance(position, itemPositions.get(i)));
+        for (XYLocation itemPosition : itemPositions) {
+            minDistance = Math.min(minDistance,
+                    manhattanDistance(position, itemPosition));
         }
 
-        return maxDistance;
+        return minDistance;
     }
 
     public int manhattanDistance(XYLocation position, XYLocation itemPosition) {
@@ -427,6 +450,9 @@ class JarvisAction extends DynamicAction {
 }
 
 class JarvisStepCostFunction implements StepCostFunction {
+    /**
+     * Step cost function: 1 untuk pindah ke posisi baru, 0 untuk ambil item
+     */
     public double c(Object stateFrom, Action action, Object stateTo) {
         JarvisAction ja = (JarvisAction) action;
         return ja.getName() == JarvisAction.PICK ? 0 : 1;
