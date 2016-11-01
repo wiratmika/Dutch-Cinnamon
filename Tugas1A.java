@@ -67,8 +67,6 @@ public class Tugas1A {
             else if (strategy.equals("a*"))
                 search = new AStarSearch(new GraphSearch(), new JarvisHeuristicFunction());
 
-            System.out.println(env);
-
             SearchAgent agent = new SearchAgent(problem, search);
             List<Action> actions = agent.getActions();
             StringBuilder sb = new StringBuilder();
