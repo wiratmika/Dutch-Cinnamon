@@ -394,7 +394,7 @@ class JarvisResultFunction implements ResultFunction {
 }
 
 /**
- * Heuristic function: mengembalikan jarak dengan item terdekat menggunakan Manhattan distance
+ * Heuristic function: mengembalikan jarak terjauh item menggunakan Manhattan distance
  */
 class JarvisHeuristicFunction implements HeuristicFunction {
     public double h(Object state) {
