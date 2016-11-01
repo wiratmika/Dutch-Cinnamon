@@ -4,7 +4,7 @@ import aima.core.search.framework.HeuristicFunction;
 import aima.core.search.framework.Search;
 import aima.core.search.framework.SearchAgent;
 import aima.core.search.framework.problem.*;
-import aima.core.search.framework.qsearch.TreeSearch;
+import aima.core.search.framework.qsearch.GraphSearch;
 import aima.core.search.informed.AStarSearch;
 import aima.core.search.uninformed.IterativeDeepeningSearch;
 import aima.core.util.datastructure.XYLocation;
@@ -65,7 +65,9 @@ public class Tugas1A {
             if (strategy.equals("ids"))
                 search = new IterativeDeepeningSearch();
             else if (strategy.equals("a*"))
-                search = new AStarSearch(new TreeSearch(), new JarvisHeuristicFunction());
+                search = new AStarSearch(new GraphSearch(), new JarvisHeuristicFunction());
+
+            System.out.println(env);
 
             SearchAgent agent = new SearchAgent(problem, search);
             List<Action> actions = agent.getActions();
@@ -81,9 +83,6 @@ public class Tugas1A {
                 if (i < actionsSize - 1)
                     sb.append(nl);
             }
-
-            // todo remove when done
-            System.out.println(sb.toString());
 
             List<String> lines = Arrays.asList(sb.toString());
             Path outputFile = Paths.get(outputFilename);
@@ -124,7 +123,7 @@ class Environment {
     /**
      * Membuat environment dengan ukuran m baris dan n kolom serta posisi Jarvis
      * Urutan baris dan kolom dimulai dari 0
-     *
+     * <p>
      * Keterangan:
      * 0  = tidak ada apapun
      * 1  = terdapat barang (item)
@@ -186,11 +185,7 @@ class Environment {
      * Memindahkan Jarvis ke posisi baru
      */
     public void moveJarvis(XYLocation l) {
-        if (isValidLocation(l)) {
-            jarvis = l;
-        } else {
-            System.out.println("Something wrong happens!");
-        }
+        jarvis = l;
     }
 
     /**
@@ -406,14 +401,14 @@ class JarvisHeuristicFunction implements HeuristicFunction {
         Environment env = (Environment) state;
         XYLocation position = env.getJarvis();
         List<XYLocation> itemPositions = env.getItemPositions();
-        double minDistance = Double.MAX_VALUE;
+        double maxDistance = Double.MIN_VALUE;
 
         for (XYLocation itemPosition : itemPositions) {
-            minDistance = Math.min(minDistance,
+            maxDistance = Math.max(maxDistance,
                     manhattanDistance(position, itemPosition));
         }
 
-        return minDistance;
+        return maxDistance;
     }
 
     public int manhattanDistance(XYLocation position, XYLocation itemPosition) {
